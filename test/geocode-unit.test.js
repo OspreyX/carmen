@@ -963,11 +963,6 @@ mapnik.register_datasource(path.join(mapnik.settings.paths.input_plugins,'geojso
     });
 })();
 
-test('index.teardown', function(assert) {
-    index.teardown();
-    assert.end();
-});
-
 function addFeature(source, doc, callback) {
     var zxys = doc._zxy.map(function(zxy) {
         zxy = zxy.split('/');
@@ -1010,3 +1005,80 @@ function addFeature(source, doc, callback) {
         index.update(source, [doc], zxys[0][0], callback);
     });
 }
+
+// POI tests
+(function() {
+    var conf = {
+        poi: new mem({maxzoom: 6, geocoder_name:'poi'}, function() {})
+    };
+    var c = new Carmen(conf);
+    test('index poi', function(t) {
+        var poi = {
+            _id:1,
+            _text:'Captain Groovy\'s Grill & Raw Bar',
+            _zxy:['6/32/32'],
+            _center:[0,0]
+        };
+        addFeature(conf.poi, poi, t.end);
+    });
+    test('test poi partial match', function(t) {
+        c.geocode('Captain Groovy\'s Grill', { limit_verify: 1 }, function (err, res) {
+            t.ifError(err);
+            t.equals(res.features[0].place_name, 'Captain Groovy\'s Grill & Raw Bar', 'found captain groovy\'s');
+            t.equals(res.features[0].relevance, 0.5806451612903226);
+            t.end();
+        });
+    });
+})();
+
+(function() {
+    var conf = {
+        poi: new mem({maxzoom: 6, geocoder_name:'poi'}, function() {})
+    };
+    var c = new Carmen(conf);
+    test('index poi', function(t) {
+        var poi = {
+            _id:1,
+            _text:'Dockside Seafood Market Marina',
+            _zxy:['6/32/32'],
+            _center:[0,0]
+        };
+        addFeature(conf.poi, poi, t.end);
+    });
+    test('test poi partial match', function(t) {
+        c.geocode('dockside seafood market', { limit_verify: 1 }, function (err, res) {
+            t.ifError(err);
+            t.equals(res.features[0].place_name, 'Dockside Seafood Market Marina', 'found dockside poi');
+            t.equals(res.features[0].relevance, 0.7419354838709677);
+            t.end();
+        });
+    });
+})();
+
+(function() {
+    var conf = {
+        poi: new mem({maxzoom: 6, geocoder_name:'poi'}, function() {})
+    };
+    var c = new Carmen(conf);
+    test('index poi', function(t) {
+        var poi = {
+            _id:1,
+            _text:'the learning ladder',
+            _zxy:['6/32/32'],
+            _center:[0,0]
+        };
+        addFeature(conf.poi, poi, t.end);
+    });
+    test('test poi with reversed name', function(t) {
+        c.geocode('learning ladder the', { limit_verify: 1 }, function (err, res) {
+            t.ifError(err);
+            t.equals(res.features.length, 0, 'did not find learning ladder');
+            t.end();
+        });
+    });
+})();
+
+test('index.teardown', function(assert) {
+    index.teardown();
+    assert.end();
+});
